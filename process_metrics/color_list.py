@@ -1,0 +1,95 @@
+layout_color_dict = {
+    'bgcolor':['paper_bgcolor','plot_bgcolor'],
+    'textcolor':['font.color','title.font.color','legend.title.font.color'],
+    'legend_colorbar':['legend.bgcolor','legend.bordercolor','coloraxis.colorbar.tickfont.color','coloraxis.colorbar.title.font.color'],
+    'axiscolor':['axis.linecolor','axis.gridcolor','axis.tickfont.color','axis.title.font.color','axis.zerolinecolor'],
+    'colorscale':['coloraxis.colorscale'],
+    'ploar':['polar.angularaxis.gridcolor','polar.angularaxis.linecolor','polar.angularaxis.tickcolor','polar.angularaxis.tickfont.color',
+        'polar.bgcolor','polar.radialaxis.color','polar.radialaxis.gridcolor','polar.radialaxis.linecolor','polar.radialaxis.tickcolor',
+        'polar.radialaxis.tickfont.color','polar.radialaxis.title.font.color'],
+    'scene':[
+            'scene.xaxis.backgroundcolor',
+            'scene.xaxis.color',
+            'scene.xaxis.gridcolor',
+            'scene.xaxis.spikecolor',
+            'scene.xaxis.tickcolor',
+            'scene.xaxis.tickfont.color',
+            'scene.xaxis.title.font.color',
+            'scene.xaxis.zerolinecolor',
+            'scene.yaxis.backgroundcolor',
+            'scene.yaxis.color',
+            'scene.yaxis.gridcolor',
+            'scene.yaxis.spikecolor',
+            'scene.yaxis.tickcolor',
+            'scene.yaxis.tickfont.color',
+            'scene.yaxis.title.font.color',
+            'scene.yaxis.zerolinecolor',
+            'scene.zaxis.backgroundcolor',
+            'scene.zaxis.color',
+            'scene.zaxis.gridcolor',
+            'scene.zaxis.spikecolor',
+            'scene.zaxis.tickcolor',
+            'scene.zaxis.tickfont.color',
+            'scene.zaxis.title.font.color',
+            'scene.zaxis.zerolinecolor'
+                ],
+    'ternary':[
+        'ternary.aaxis.color',
+        'ternary.aaxis.gridcolor',
+        'ternary.aaxis.linecolor',
+        'ternary.aaxis.tickcolor',
+        'ternary.aaxis.tickfont.color',
+        'ternary.aaxis.title.font.color',
+        'ternary.baxis.color',
+        'ternary.baxis.gridcolor',
+        'ternary.baxis.linecolor',
+        'ternary.baxis.tickcolor',
+        'ternary.baxis.tickfont.color',
+        'ternary.baxis.title.font.color',
+        'ternary.bgcolor',
+        'ternary.caxis.gridcolor',
+        'ternary.caxis.linecolor',
+        'ternary.caxis.tickcolor',
+        'ternary.caxis.tickfont.color',
+        'ternary.caxis.title.font.color',
+    ],
+    'modebar': [
+        'modebar.activecolor',
+        'modebar.bgcolor',
+        'modebar.color',
+    ]
+
+    
+    
+}
+data_color_dict = {
+    'marker':['marker.color','marker.line.color','marker.line.outliercolor','marker.outliercolor','marker.colors'],
+    'line':['line.color','box.line.color'],
+    'text':['textfont.color'],
+    'fillcolor':['fillcolor'],
+    'inside_outside_textfont':['insidetextfont.color','outsidetextfont.color'],
+    'surface':['surfacecolor'],
+    'contour':['contours.coloring','contours.labelfont.color'],
+    'error':['error_x.color','error_y.color'],
+    'trend':['decreasing.fillcolor','decreasing.line.color','decreasing.marker.color','decreasing.marker.line.color',
+    'increasing.fillcolor','increasing.line.color','increasing.marker.color','increasing.marker.line.color'],
+    'carpet':['aaxis.color','aaxis.gridcolor','aaxis.minorgridcolor','aaxis.tickfont.color','aaxis.title.font.color',
+             'baxis.color',
+             'baxis.gridcolor',
+             'baxis.minorgridcolor',
+             'baxis.tickfont.color',
+             'baxis.title.font.color'],
+    'mesh3d': [
+        'facecolor',
+        'vertexcolor',
+    ],
+    'sankey': [
+        'link.color',
+        'node.color',
+        'node.line.color'
+        'link.color',
+        'link.line.color'
+    ],
+    'colorscale':['colorscale']
+  
+}
