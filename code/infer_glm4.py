@@ -1,0 +1,168 @@
+import os
+import time
+import argparse
+from tqdm import tqdm
+import torch
+from pathlib import Path
+from PIL import Image
+import torch.distributed as dist
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import traceback                          # ←①
+from datetime import timedelta 
+
+def qwen_image2plotly_inference(mode, chart_type,image_path, model, tokenizer, gen_kwargs):
+    """
+    使用 Qwen2.5-VL 对给定图表图像进行推理，输出可执行的 Plotly Python 代码。
+    """
+    if mode == 'code':
+        if 'other' in chart_type:
+            question = "You are an AI assistant capable of understanding charts and quickly transforming chart information into Python plotting code. I have an image of a chart, and I would like you to use the Matplotlib library to recreate it. Please deduce or extract the data shown in the chart, accurately restore the chart type, axis labels, ranges, legend, title, color scheme, and other details. Only provide the complete, directly executable Python code for plotting, without any explanation or reasoning process."
+        else:
+            question = "You are an AI assistant capable of understanding charts and quickly transforming chart information into Python plotting code. I have an image of a chart, and I would like you to use the Plotly library to recreate it. Please deduce or extract the data shown in the chart, accurately restore the chart type, axis labels, ranges, legend, title, color scheme, and other details. Only provide the complete, directly executable Python code for plotting, without any explanation or reasoning process."
+    if mode == 'table':
+        base_name = Path(image_path).stem
+        prompt_path = Path('/root/paddlejob/workspace/env_run/benchmark/prompts') / chart_type / f"{base_name}.txt"
+        # 明确使用 UTF‑8
+        with prompt_path.open('r', encoding='utf-8') as f:
+            question = f.read().strip()  
+        
+    
+    image = Image.open(image_path).convert('RGB')
+    inputs = tokenizer.apply_chat_template([
+        {"role": "user", "image": image, "content": question}],
+        add_generation_prompt=True, tokenize=True, return_tensors="pt",return_dict=True)  # chat mode
+    inputs = inputs.to(model.device)
+    
+    # 推理生成
+    with torch.no_grad():
+        outputs = model.generate(**inputs, **gen_kwargs)
+        outputs = outputs[:, inputs['input_ids'].shape[1]:]
+        output_text = tokenizer.decode(outputs[0])
+
+    return output_text
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_path", type=str, default="models/Qwen2.5-VL-7B-Instruct",
+                        help="Path to the Qwen2.5-VL model.")
+    parser.add_argument("--base_image_dir", type=str,
+                        default="/root/paddlejob/workspace/env_run/benchmark/input_image/human_image",
+                        help="Directory containing chart images in subfolders.")
+    parser.add_argument("--output_dir", type=str,
+                        default="/root/paddlejob/workspace/env_run/benchmark/res-code/Qwen2.5-VL-7B_Results",
+                        help="Directory to save the generation outputs.")
+    parser.add_argument("--max_new_tokens", type=int, default=4096,
+                        help="Maximum number of new tokens to generate.")
+    parser.add_argument("--mode", type=str,help="Maximum number of new tokens to generate.")
+    parser.add_argument("--chart_types", type=str,  # 默认支持多个类型，逗号分隔
+    help="Comma-separated list of chart types to process. E.g. 'bar,box,violin'"
+)
+    args = parser.parse_args()
+
+    # ------------------------- 初始化分布式 ------------------------- #
+    dist.init_process_group(
+        backend="nccl",
+        init_method="env://",
+        timeout=timedelta(hours=2)           # ★ enlarged timeout
+    )
+    local_rank = dist.get_rank()
+    world_size = dist.get_world_size()
+    torch.cuda.set_device(local_rank)
+    group_gloo = dist.new_group(backend="gloo")  # ★ gloo group
+
+    if local_rank == 0:
+        print("World size:", world_size)
+        print("Loading Qwen2.5-VL model and processor on rank=0 ...")
+
+    # ------------------------- 加载模型与处理器 ------------------------- #
+    # 显存充足，可直接把整份模型都搬到 rank 对应的 GPU
+
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model_path,
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True,
+        trust_remote_code=True
+    ).eval().cuda(local_rank)
+
+    tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
+
+    # ------------------------- 收集所有要处理的图像 ------------------------- #
+    chart_types = [x.strip() for x in args.chart_types.split(',') if x.strip()]
+    all_image_paths = []
+    for chart_type in chart_types:
+        chart_dir = os.path.join(args.base_image_dir, chart_type)
+        if not os.path.exists(chart_dir):
+            continue
+        for fname in os.listdir(chart_dir):
+            if fname.lower().endswith((".png", ".jpg", ".jpeg")):
+                all_image_paths.append((chart_type, os.path.join(chart_dir, fname)))
+
+    if local_rank == 0:
+        print(f"Found total {len(all_image_paths)} images.", flush=True)
+
+    if not all_image_paths:
+        dist.destroy_process_group()
+        return
+
+    # 每 rank 单独输出目录
+    local_output_dir = os.path.join(args.output_dir, f"rank_{local_rank}")
+    os.makedirs(local_output_dir, exist_ok=True)
+
+    # ------------------------- 主循环 ------------------------- #
+    local_data = all_image_paths[local_rank::world_size]
+    total_time = 0.0
+    num_samples = 0
+    start_time_global = time.time()
+    gen_kwargs = dict(max_new_tokens=args.max_new_tokens,
+                      do_sample=True,
+                      temperature=0.1,
+                      top_p=0.95)
+
+    try:
+        for idx, (chart_type, image_path) in enumerate(
+                tqdm(local_data, desc=f"[Rank {local_rank}] Processing")):
+            t0 = time.time()
+            try:
+                result_text = qwen_image2plotly_inference(
+                args.mode, chart_type,
+                image_path, 
+                model, 
+                tokenizer,
+                gen_kwargs
+            )
+                # -- 写文件 --
+                out_subdir = os.path.join(local_output_dir, chart_type)
+                os.makedirs(out_subdir, exist_ok=True)
+                base = os.path.splitext(os.path.basename(image_path))[0]
+                with open(os.path.join(out_subdir, base + ".txt"),
+                          "w", encoding="utf-8") as f:
+                    f.write(result_text)
+
+                total_time += time.time() - t0     # ←②
+                num_samples += 1                   # ←②
+            except Exception as e:
+                traceback.print_exc()
+                print(f"[Rank {local_rank}] Error {image_path}: {e}", flush=True)
+                continue
+
+            # 每 50 张同步一次
+            if (idx + 1) % 50 == 0:
+                dist.barrier()
+
+    finally:
+        # ------------------------- 收尾 ------------------------- #
+        if num_samples:
+            avg = total_time / num_samples
+            print(f"[Rank {local_rank}] Done {num_samples} imgs | "
+                  f"avg {avg:.3f}s | total {time.time()-start_time_global:.1f}s",
+                  flush=True)
+
+        try:
+            dist.barrier(group=group_gloo, timeout=timedelta(minutes=10))
+        except Exception:
+            pass
+        dist.destroy_process_group()               # ←③
+
+
+if __name__ == "__main__":
+    main()
