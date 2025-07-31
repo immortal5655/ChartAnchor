@@ -29,19 +29,19 @@
 
 ### Chart-to-Code Evaluation
 
-- In `process_metrics/evaluate_single_chart.py`, set the paths to the **ground truth code** (`*.py`) and the **model-generated code** (`*.py`) to evaluate the following metrics:  
+- In `eval/evaluate_single_chart.py`, set the paths to the **ground truth code** (`*.py`) and the **model-generated code** (`*.py`) to evaluate the following metrics:  
   **Functional Validity**, **Visual Structure Consistency** (*Legend, Title, Axis, Annotations*), and **Data Fidelity**.
 
-- In `process_metrics/evaluate_single_image.py`, set the paths to the **ground truth image** and the **image rendered from the model-generated code** to evaluate **Perceptual Similarity**.
+- In `eval/evaluate_single_image.py`, set the paths to the **ground truth image** and the **image rendered from the model-generated code** to evaluate **Perceptual Similarity**.
 
 ### Controlled Chart-to-Table Evaluation
 
-- In `process_metrics/evaluate_single_table.py`, set the paths to the **ground truth table** (`*.json`) and the **model-generated table** (`*.json`) to evaluate metrics for the controlled chart-to-table task.
+- In `eval/evaluate_single_table.py`, set the paths to the **ground truth table** (`*.json`) and the **model-generated table** (`*.json`) to evaluate metrics for the controlled chart-to-table task.
 
 ### Run Evaluation Scripts
 
 ```bash
-cd process_metrics
+cd eval
 python evaluate_single_chart.py
 python evaluate_single_image.py
 python evaluate_single_table.py
