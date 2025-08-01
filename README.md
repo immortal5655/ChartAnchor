@@ -56,8 +56,7 @@ python evaluate_single_table.py
 ## Data
 |  Dataset  | Download Link  |
 |  ----  | ----  |
-|Chart2Code-160k  | [HuggingFace](https://huggingface.co/datasets/xxxllz/Chart2Code-160k) |
-|Chart2Code-160k  | [ModelScope](https://modelscope.cn/datasets/Noct25/Chart2Code-160k)|
+|ChartAnchor  | [Kaggle](https://www.kaggle.com/datasets/dppppp/mydataset/data) |
 
 ## Contact
 
